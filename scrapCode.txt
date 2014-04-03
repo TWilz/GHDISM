@@ -1,0 +1,9 @@
+Get random value
+
+Get random value in 1..99
+
+max := big.NewInt(100)
+i, err := rand.Int(rand.Reader, max)
+
+
+
