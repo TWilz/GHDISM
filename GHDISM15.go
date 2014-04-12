@@ -25,6 +25,7 @@
  //GHDISM12 adding in any number of people. Works for any number of people. Tried with 20 dzs, 10 interventions, 100 people, 200 cycles and it worked. 
  //GHDISM13 adding in utilities. works except for rand(10) w/ 2 dzs, 1 intervention, 20 max cyces, 2 people. 10th cycle of person1,dz0 is discordant in stateseries and path of 1s and 0s
  //GHDISM14 add in input from user
+// GDHISM15 added in qalys, doesn't work
  
 package main
 
@@ -41,7 +42,7 @@ import (
 	const numInterventions = 1
 	const numDzs = numDiseases 
 	const maxNumDzStates = 10
-	const maxNumCycles = 20
+	const maxNumCycles = 10
 	const numberOfPeople = 2 //1 being 1st and 0th person
 	type individualpath [numberOfPeople][numDzs][maxNumDzStates][maxNumCycles]int
 	var person individualpath
@@ -87,7 +88,7 @@ func defineNumDzStatesAndNumCyclesForEachDz() {
 		numDzStates[q] = 5 //default
 		//this is where we'd alter the number of disease states for each, e.g.
 		numDzStates[1] = 8
-		numCycles[q] = 10 //default
+		numCycles[q] = maxNumCycles //default
 		//this is where we'd alter the number of disease cycles for each e.g.
 		//numCycles[1] = 11
 		fmt.Println("For disease number",q,"there are ",numDzStates[q],"number of disease states")
@@ -230,7 +231,7 @@ func randomize() {
 	// whatever number goes inside of the Seed function will determine random #'s. can use time to randomize
 	//this is inside the for loop for each disease, so each disease q has an array of random numbers
 	//each corresponding to one of the cycles.  each disease has a different randome number for each cycle.
-	rand.Seed(100)  //NEED to seed random number gen here. Otherwise each dz has the same set of random numbers. 
+	rand.Seed(10)  //NEED to seed random number gen here. Otherwise each dz has the same set of random numbers. 
 	for per:=0;per<numberOfPeople;per++{
 		fmt.Println("\nThe random numbers for person",per," are")
 		for q:=0; q<numDzs; q++ {	
@@ -256,7 +257,7 @@ for per:=0;per<numberOfPeople;per++{
 	for q:=0; q<numDzs; q++ {
 		//initializes everyone to start in dz state 0
 		person[per][q][0][0]=1
-		state[per][q][0]=1
+		state[per][q][0]=0
 		/* This next section of code somewhat randomly puts a person into the disease states.  It is based off of the
 			the 0th column of the transition matrix which doesn't make intuitive sense for the TM's design
 			if (random[q][0] <= verticalSumTMI[q][0][0]) {
@@ -288,7 +289,7 @@ for per:=0;per<numberOfPeople;per++{
 			for i:=0; i<numDzStates[q]; i++ {
 				if (person[per][q][i][cycle-1]==1 && random[per][q][cycle]<=sumTMI[q][i][0]) {
 						person[per][q][0][cycle] = 1
-						state[per][q][cycle]=i
+						state[per][q][cycle]=0
 						}
 				}
 			//Determine if person belongs in TM[x][1] i.e. cycle 1, dz state 1 through numDzStates. WORKS!!
@@ -360,16 +361,17 @@ func printStateSeries(qf int, per int) {
 func printAllStateSeries() {
 //Prints ALL state series for ALL people
 //fmt.Println("\n\n\n State Series is:",state1)
+fmt.Println("\nAfter running the model, the state series for the people are:")
 for per:=0;per<numberOfPeople;per++{
 for q:=0; q<numDzs; q++ {
-	fmt.Println("\n\nPerson ",per," Disease ",q)
-	fmt.Println("Cycle")
+	fmt.Println("\n\n\tPerson ",per," Disease ",q)
+	fmt.Println("\tCycle")
 	for c:=0; c<numCycles[q]; c++ {
-		fmt.Print(c,"\t")
+		fmt.Print("\t",c,"\t")
 		}
 	fmt.Println("\n")	
 	for c:=0; c<numCycles[q]; c++ {
-		fmt.Print(state[per][q][c],"\t")
+		fmt.Print("\t",state[per][q][c],"\t")
 		}
 	}
 }
@@ -381,7 +383,7 @@ func assignValuesToAllInterventionArrays() {
 		for d:=0;d<numDzs;d++{
 			for fromDzState:=0;fromDzState<numDzStates[d];fromDzState++ {
 				for toDzState:=0;toDzState<numDzStates[d];toDzState++{
-					intervention[i][d][fromDzState][toDzState]=1.0
+					intervention[i][d][fromDzState][toDzState]=1.2 //arbitrarily assigned all interventions to speed up the progression by 20%
 					}
 				}
 			}
@@ -441,7 +443,7 @@ func printUtilities() {
 //				fmt.Println("state[per][dz][numCycles[dz]:",state[per][dz][numCycles[dz]])//db
 //				fmt.Println("state[0][0][9]:",state[0][0][9])
 				for cycle:=0;cycle<numCycles[dz];cycle++{
-					fmt.Println("Disease ",dz," cycle ",cycle," the utility:",u[dz][state[per][dz][cycle]])
+					fmt.Println(" for disease ",dz," cycle ",cycle," the utility is:",u[dz][state[per][dz][cycle]])
 				}
 				}
 			}
@@ -453,17 +455,45 @@ func calculateQALYs() {
 //
 //type qaly[numberOfPeople][maxNumCycles]
 //type utilityMatrix [numDzs][maxNumDzStates]float32
+	fmt.Println("***************************************************")
 	for per:=0;per<numberOfPeople;per++ {
+		fmt.Println("***************************************************")
   		for dz:=0;dz<numDzs;dz++ {
+ 			fmt.Println("***************************************************")
   			for cycle:=1;cycle<numCycles[dz];cycle++ {
-  				qaly[per][cycle]= qaly[per][cycle-1] + (u[dz][state[per][dz][cycle]] * 1) 
+				fmt.Println("***************************************************")
+  				fmt.Println("u[",dz,"][",state[per][dz][cycle],":",u[dz][state[per][dz][cycle]])
+  				qaly[per][cycle]= qaly[per][cycle]+qaly[per][cycle-1] + (u[dz][state[per][dz][cycle]] * 1) 
+  				fmt.Println("qaly[",per,"][",cycle,"]:",qaly[per][cycle])
 				//all initial qaly's i.e. qaly[0] are 0.
 				//times 1 b/c assume 1 cycle= 1 year. 
 				//this could be changed *(1/12) if each cycle was a month rather than a year.
 				}
 			}
 		}
-	fmt.Println("QALYs:",qaly)
+	
+//	averageQALYperPerson=qaly[per]
+}
+
+func printQALYs() {
+//type qaly[numberOfPeople][maxNumCycles]
+
+	fmt.Println("After running the model, the QALYs are:\n")
+	for per:=0;per<numberOfPeople;per++ {
+		fmt.Println("\nFor person ",per,":")
+		for cycle:=0;cycle<maxNumCycles;cycle++ {
+				fmt.Println(" after cycle ",cycle," the QALYs (summative of all diseases) are:",qaly[per][cycle])
+				}		
+
+		
+//		fmt.Println("Cycle")
+//		for c:=0; c<numCycles[q]; c++ {
+//			fmt.Print(c,"\t\t\t")
+//			}
+//		for cycle:=0;cycle<maxNumCycles;cycle++ {
+//				fmt.Print(float32(qaly[per][cycle]),"\t\t")
+//				}
+		}
 }
 
 func main() {
@@ -494,8 +524,8 @@ func main() {
 //Calculates the path of the individuals
 	initializePeopleToStartStates()
 	calculatePath()
-
-	
+	calculateQALYs()
+	fmt.Println("***************************************************")
 //Request user input on what interested in
 
 //All calculations are done by here. Now it's just output. 
@@ -511,7 +541,8 @@ func main() {
 
 	printUtilities()
 	fmt.Println("\n")
-	calculateQALYs()
+	
+	printQALYs()
 }//end main
 
 /*
