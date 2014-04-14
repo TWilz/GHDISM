@@ -41,6 +41,7 @@ import (
 	)
 
 //Declaration of global variables
+	var size int
 	const numDiseases = 20
 	const numInterventions = 200
 	const numDzs = numDiseases 
@@ -105,6 +106,7 @@ func defineNumDzStatesAndNumCyclesForEachDz() {
 		//numCycles[1] = 11
 		fmt.Println("\tFor disease number",q,"there are ",numDzStates[q],"number of disease states")
 		fmt.Println("\tFor disease number",q,"there are ",numCycles[q],"number of cycles")
+		size=size+1
 		}
 	fmt.Print("\n")
 }
@@ -116,6 +118,7 @@ func initializeValuesOfTM() {
 		for i := 0; i < numDzStates[q]; i++ {
 			for j := 0; j < numDzStates[q]; j++ {						
 				TM[q][i][j]=float32(1.0/float32(numDzStates[q]))
+				size=size+1
 				}
 			}
 		}
@@ -161,7 +164,8 @@ func assignValuesToAllAssociationArrays() {
 		for affectedDzs :=0; affectedDzs < numDzs; affectedDzs++ {
 			for fromDzState := 0; fromDzState < numDzStates[q]; fromDzState++ {
 				for toDzState :=0; toDzState < numDzStates[q]; toDzState++ {
-					AA[q][affectedDzs][fromDzState][toDzState] = 1.2
+					AA[q][affectedDzs][fromDzState][toDzState] = 2.0
+					size=size+1
 //					println("Association Array:",q,affectedDzs,fromDzState,toDzState,AA[q][affectedDzs][fromDzState][toDzState])
 					}
 				}
@@ -172,12 +176,17 @@ func assignValuesToAllAssociationArrays() {
 }
 
 func calculateTMIforDzInteractions() {
+	//********
 	//given TM and AA, this function calculates the TMI the Transition Matrix with Interactions. It does this for ALL diseases.
 	for q:=0; q<numDzs; q++ {
 		for affectedDzs :=0; affectedDzs < numDzs; affectedDzs++ {
 			for fromDzState := 0; fromDzState < numDzStates[q]; fromDzState++ {
 				for toDzState :=0; toDzState < numDzStates[q]; toDzState++ {
-					TMI[q][fromDzState][toDzState]= AA[q][affectedDzs][fromDzState][toDzState] * TM[q][fromDzState][toDzState]
+					for affectingDz:=0;affectingDz<numDzs;affectingDz++{
+					
+						TMI[q][fromDzState][toDzState]= AA[affectingDz][affectedDzs][fromDzState][toDzState] * TM[q][fromDzState][toDzState]//should be *
+						size=size+1
+						}
 					//println(q,affectedDzs,fromDzState,toDzState,AA[q][affectedDzs][fromDzState][toDzState])
 					}
 				}
@@ -218,6 +227,7 @@ func calculateSumTMI() {
 			for c:=1; c<numDzStates[q]; c++ {
 				sumTMI[q][r][c]=0
 				verticalSumTMI[q][r][c]=0
+				size=size+1
 				}
 			}
 		}
@@ -227,17 +237,20 @@ func calculateSumTMI() {
 	for q:=0; q<numDzs; q++ {
 		//calculates the horizontal cumulative TMI
 		for r:=0; r<numDzStates[q]; r++ {
-			sumTMI[q][r][0]=TMI[q][r][0]		
+			sumTMI[q][r][0]=TMI[q][r][0]	
+			size=size+1	
 			}
 		for r:=0; r<numDzStates[q]; r++ {
 			for c:=1; c<numDzStates[q]; c++ {
 				sumTMI[q][r][c]=sumTMI[q][r][c-1]+TMI[q][r][c]
+				size=size+1
 				}
 			}
 		//calculates the vertical cumulative TMI
 		verticalSumTMI[q][0][0] = TMI[q][0][0]
 		for r:=1; r<numDzStates[q]; r++ {
 			verticalSumTMI[q][r][0]=verticalSumTMI[q][r-1][0]+TMI[q][r][0]
+			size=size+1
 			}			
 //		fmt.Println("The horizontal summative values of the TM WITH INTERACTIONS are:")
 //		fmt.Println("--------------------------------------------------------------------------")		
@@ -262,6 +275,7 @@ func randomize() {
 		for q:=0; q<numDzs; q++ {	
 			for o :=0; o<numCycles[q]; o++ {
 				random[per][q][o] = rand.Float32()
+				size=size+1
 				}
 			
 			for o :=0; o<numCycles[q]; o++ {
@@ -283,6 +297,7 @@ for per:=0;per<numberOfPeople;per++{
 		//initializes everyone to start in dz state 0
 		person[per][q][0][0]=1
 		state[per][q][0]=0
+		size=size+1
 		/* This next section of code somewhat randomly puts a person into the disease states.  It is based off of the
 			the 0th column of the transition matrix which doesn't make intuitive sense for the TM's design
 			if (random[q][0] <= verticalSumTMI[q][0][0]) {
@@ -314,6 +329,7 @@ func calculatePath() {
 				for cycle:=1; cycle<numCycles[q]; cycle++ {	
 					person[per][q][i][cycle] = 0
 					state[per][q][cycle]=0
+					size=size+1
 					}
 				}
 			}
@@ -327,6 +343,7 @@ for per:=0;per<numberOfPeople;per++{
 				if (person[per][q][i][cycle-1]==1 && random[per][q][cycle]<=sumTMI[q][i][0]) {
 						person[per][q][0][cycle] = 1
 						state[per][q][cycle]=0
+						size=size+1
 						}
 				}
 			//Determine if person belongs in TM[x][1] i.e. cycle 1, dz state 1 through numDzStates. WORKS!!
@@ -335,6 +352,7 @@ for per:=0;per<numberOfPeople;per++{
 					if (person[per][q][j][cycle-1]==1 && random[per][q][cycle]>sumTMI[q][j][o-1] && random[per][q][cycle]<=sumTMI[q][j][o]) {
 						person[per][q][o][cycle] = 1
 						state[per][q][cycle]=o
+						size=size+1
 						}
 					}
 				}
@@ -424,6 +442,7 @@ func assignValuesToAllInterventionArrays() {
 			for fromDzState:=0;fromDzState<numDzStates[d];fromDzState++ {
 				for toDzState:=0;toDzState<numDzStates[d];toDzState++{
 					intervention[i][d][fromDzState][toDzState]=1.2 //arbitrarily assigned all interventions to speed up the progression by 20%
+					size=size+1
 					}
 				}
 			}
@@ -439,6 +458,7 @@ func calculateTMIforIntervention(inter int)  {
 			for fromDzState:=0;fromDzState<numDzStates[d];fromDzState++ {
 				for toDzState:=0;toDzState<numDzStates[d];toDzState++{
 					TMI[d][fromDzState][toDzState]=TMI[d][fromDzState][toDzState]*intervention[inter][d][fromDzState][toDzState]
+					size=size+1
 					}
 				}
 			}
@@ -450,7 +470,11 @@ func calculateTMIforAllInterventions() {
 		for d:=0;d<numDzs;d++{
 			for fromDzState:=0;fromDzState<numDzStates[d];fromDzState++ {
 				for toDzState:=0;toDzState<numDzStates[d];toDzState++{
-					TMI[d][fromDzState][toDzState]=TMI[d][fromDzState][toDzState]*intervention[i][d][fromDzState][toDzState]
+					for affectingIntervention:=0;affectingIntervention<numInterventions;affectingIntervention++{
+					
+						TMI[d][fromDzState][toDzState]=TMI[affectingIntervention][fromDzState][toDzState]*intervention[i][d][fromDzState][toDzState]
+						size=size+1
+						}
 					}
 				}
 			}
@@ -467,6 +491,7 @@ func assignUtilityMatrix() {
 		u[dz][0]=1.0
 		for dzState:=1;dzState<numDzStates[dz];dzState++{
 			u[dz][dzState]=float32(u[dz][dzState-1] - (1.0 / float32((int(numDzStates[dz]) - 1))))
+			size=size+1
 			}
 		}
 }
@@ -510,6 +535,7 @@ func calculateQALYs() {
 	for per:=0;per<numberOfPeople;per++{
 		for dz:=0;dz<numDzs;dz++{
 			qaly[per][dz][0]=u[dz][state[per][dz][0]]* cyclesPerYear
+			size=size+1
 			}
 		}
 	for per:=0;per<numberOfPeople;per++ {
@@ -650,6 +676,7 @@ func main() {
 		if (input==7) {printAllTMs()}
 		if (input==8) {printAllTMI()}
 		if (input==9) {printAllUtilityMatrix()}
+		if (input==11) {fmt.Println(AA)}
 		x=input
 	}
 	
@@ -681,7 +708,7 @@ func main() {
 
 //	printUtilities()
 	fmt.Println("\n")
-	
+	fmt.Println("SIZE",size)
 //	printQALYs()
 }//end main
 
